@@ -1,7 +1,7 @@
-// percolate simulation by R Neale
-// published on https://maths.earth/
-// provided "as is" under the MIT license
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::env;
+extern crate chrono;
+use chrono::Local;
 
 fn print_array(array:&Vec<Vec<usize>>, height: usize, width: usize){
     //function to print out the array to the teminal
@@ -18,8 +18,8 @@ fn print_array(array:&Vec<Vec<usize>>, height: usize, width: usize){
 fn count_clusters(array:&Vec<Vec<usize>>, height: usize, width: usize) -> HashMap<usize, usize> {
     let mut clusters = HashMap::new();
 
-    for i in 0..height{
-        for j in 0..width{
+    for i in 1..height-1{
+        for j in 1..width-1{
             if array[i][j] > 0 {
                 *clusters.entry(array[i][j]).or_insert(0) += 1;
             }
@@ -37,68 +37,143 @@ fn sort_clusters(clusters: &HashMap<usize, usize>) -> Vec<(usize, usize)> {
 //end sort_cluster function
 }
 
+//Function to check if a cluster percolates
+fn check_percolation(array:&Vec<Vec<usize>>, height: usize, width: usize, clusters: &HashMap<usize, usize>) {
+    // Check top and bottom rows for cluster ids
+    let top_row: HashSet<_> = array[1].iter().cloned().collect();
+    let bottom_row: HashSet<_> = array[height - 2].iter().cloned().collect();
    
-    fn main() {
-     //define array, constants and variables
-        const WIDTH: usize = 24;
-        const HEIGHT: usize  = 16;
-        const N: usize = WIDTH * HEIGHT;
-        let mut n = 0;
-        let mut change:usize = 0;
-        let mut loops:usize = 0;
+    // Check left and right columns for cluster ids
+    let left_column: HashSet<_> = array.iter().map(|row| row[1]).collect();
+    let right_column: HashSet<_> = array.iter().map(|row| row[width - 2]).collect();
    
-    //define array and populat with zeros
-        let mut array = vec![vec![0; WIDTH]; HEIGHT];
+    for (&cluster_id, _) in clusters.iter() {
+        let touches_top = top_row.contains(&cluster_id);
+        let touches_bottom = bottom_row.contains(&cluster_id);
+        let touches_left = left_column.contains(&cluster_id);
+        let touches_right = right_column.contains(&cluster_id);
+       
+        let percolates_vertically = touches_top && touches_bottom;
+        let percolates_horizontally = touches_left && touches_right;
+       
+        if percolates_vertically && percolates_horizontally {
+            println!("Cluster {:0>3} percolates both vertically and horizontally.", cluster_id);
+        } else if percolates_vertically {
+            println!("Cluster {:0>3} percolates vertically.", cluster_id);
+        } else if percolates_horizontally {
+            println!("Cluster {:0>3} percolates horizontally.", cluster_id);
+        }
+    }
+//end check__percolation function
+}
+
    
-    //populate array with consecutive numbers where 0 is rock and give it a rock boarder
-        for i in 1..HEIGHT-1{
-            for j in 1..WIDTH-1{
-                if ((i*HEIGHT)+j)%5>0{
-                    array[i][j]=(i*HEIGHT)+j;
-                }
+fn main() {
+//define array, constants and variables
+    let mut width: usize = 24;
+    let mut height: usize  = 16;
+    let mut n = 0;
+    let mut change:usize = 0;
+    let mut loops:usize = 0;
+    let mut debug_flag: i32 = 0;
+    let now = Local::now();
+    let date_time_string = now.format("%Y%m%d%H%M%S").to_string();
+
+//get commandline args
+    let args: Vec<String> = env::args().collect();
+    for mut i in 1..args.len(){
+        if args[i]=="help" {
+            println!("cargo run -- debug height 99 width 99 help");
+            println!("debug - print the before and after array to the console");
+            println!("height 99 - numeric value for heigh (y) of array");
+            println!("width 99 - numeric value for width (x) of the array");
+            println!("help - print this helpful information");
+            std::process::exit(0);
+        }
+        if args[i]=="debug" {debug_flag=1;}
+        if args[i]=="width" {
+            i+=1;
+            width=match args[i].trim().parse::<usize>(){
+                Ok(value) => {value},
+                Err(_) => {
+                    eprintln!("Width must be numeric value");
+                    std::process::exit(1);
+                },
+            };
+        }
+        if args[i]=="height" {
+            i+=1;
+            height=match args[i].trim().parse::<usize>(){
+                Ok(value) => {value},
+                Err(_) => {
+                    eprintln!("Height must be numeric value");
+                    std::process::exit(1);
+                },
+            };
+        }
+    }
+   
+//define array and populat with zeros
+    let nn: usize = width * height;
+    let mut array = vec![vec![0; width]; height];
+   
+//populate array with consecutive numbers where 0 is rock and give it a rock boarder
+    for i in 1..height-1{
+        for j in 1..width-1{
+            if ((i*height)+j)%5>0{
+                array[i][j]=(i*height)+j;
             }
         }
-   
-    //print array
-        print_array(&array, HEIGHT, WIDTH);
-   
-   
-    //perculate array
-        while n < N {
-            for i in 1..HEIGHT-1{
-                for j in 1..WIDTH-1{
-                    if array[i][j] > 0{
-                        if array[i][j-1]>array[i][j] {array[i][j]=array[i][j-1];change+=1;}
-                        if array[i][j+1]>array[i][j] {array[i][j]=array[i][j+1];change+=1;}
-                        if array[i-1][j]>array[i][j] {array[i][j]=array[i-1][j];change+=1;}
-                        if array[i+1][j]>array[i][j] {array[i][j]=array[i+1][j];change+=1;}
-                    }
-                }
-            }
-            loops+=1;
-            if change > 0 {  
-                n+=1;
-                change = 0;
-            } else {
-                n = N;
-            }
-        }
+    }
    
 //print array
-       println!("");
-       print_array(&array, HEIGHT, WIDTH);
-       println!("");
+    if debug_flag==1 {
+        print_array(&array, height, width);
+    }
+   
+//perculate array
+    while n < nn {
+        for i in 1..height-1{
+            for j in 1..width-1{
+                if array[i][j] > 0{
+                    if array[i][j-1]>array[i][j] {array[i][j]=array[i][j-1];change+=1;}
+                    if array[i][j+1]>array[i][j] {array[i][j]=array[i][j+1];change+=1;}
+                    if array[i-1][j]>array[i][j] {array[i][j]=array[i-1][j];change+=1;}
+                    if array[i+1][j]>array[i][j] {array[i][j]=array[i+1][j];change+=1;}
+                }
+            }
+        }
+        loops+=1;
+        if change > 0 {  
+            n+=1;
+            change = 0;
+        } else {
+            n = nn;
+        }
+    }
+   
+//print array
+    if debug_flag==1 {
+        println!("");
+        print_array(&array, height, width);
+    }
+    println!("");
 
 //count the clusters
-       let clusters = count_clusters(&array, HEIGHT, WIDTH);
-       let sorted_clusters = sort_clusters(&clusters);
-       for (cluster, size) in sorted_clusters.iter() {
-           println!("Cluster {:0>3} size: {}", cluster, size);
-       }
+    let clusters = count_clusters(&array, height, width);
+    let sorted_clusters = sort_clusters(&clusters);
+    for (cluster, size) in sorted_clusters.iter() {
+        println!("Cluster {:0>3} size: {}", cluster, size);
+    }
     println!("");
+//check for clusters that percolate
+    check_percolation(&array, height, width, &clusters);
+    println!("");
+//print totals
     println!("Total clusters: {}", clusters.len());
     println!("");
-    println!("Percolation completed in: {} loops (Max loops {})", loops, N);
-    //end of program
-    }
+    println!("Percolation completed in: {} loops (Max loops {})", loops, nn);
+
+//end of program
+}
    
