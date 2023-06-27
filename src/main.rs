@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 extern crate chrono;
 use chrono::Local;
+use colored::Colorize;
 
 fn print_array(array:&Vec<Vec<usize>>, height: usize, width: usize){
     //function to print out the array to the teminal
@@ -76,6 +77,7 @@ fn main() {
     let mut change:usize = 0;
     let mut loops:usize = 0;
     let mut debug_flag: i32 = 0;
+    let mut fileoutput_flag: i32 = 0;
     let now = Local::now();
     let date_time_string = now.format("%Y%m%d%H%M%S").to_string();
 
@@ -83,11 +85,14 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     for mut i in 1..args.len(){
         if args[i]=="help" {
-            println!("cargo run -- debug height 99 width 99 help");
-            println!("debug - print the before and after array to the console");
-            println!("height 99 - numeric value for heigh (y) of array");
-            println!("width 99 - numeric value for width (x) of the array");
-            println!("help - print this helpful information");
+            println!("{} -- <debug> <height 99> <width 99> <help> <fileoutput> <loadfile filename>","percolate".bold());
+            println!("{} - print the before and after array to the console","debug".bold());
+            println!("{} - numeric value for heigh (y) of array","height <99>".bold());
+            println!("{} - numeric value for width (x) of the array","width <99>".bold());
+            println!("{} - print this helpful information","help".bold());
+            println!("{} - this will make create three files (no data will print to the console):","fileoutput".bold());
+            println!("\tpre-percolation map\n\tpost-percolation map\n\trun log");
+            println!("{} - this will load a pre-percolation map and run with that data","loadfile <filename>".bold());
             std::process::exit(0);
         }
         if args[i]=="debug" {debug_flag=1;}
@@ -110,6 +115,13 @@ fn main() {
                     std::process::exit(1);
                 },
             };
+        }
+        if args[i]=="fileoutput" {fileoutput_flag=1;}
+        if args[i]=="loadfile"{
+            i+=1;
+            let loadfile_name = &args[i];
+            println!("{}", loadfile_name);
+            std::process::exit(0);
         }
     }
    
